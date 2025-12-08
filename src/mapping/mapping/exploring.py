@@ -11,6 +11,7 @@ import numpy as np                   # Imports numpy to create/load numeric data
 from path_planning.path import pathplanning
                       
 class Swarm(Node):
+    pastchosen_Frontiers = set()
     def __init__(self, bot_count=1):
         super().__init__('swarm')
         self.map = GeneratedMap()
@@ -73,23 +74,42 @@ class Swarm(Node):
         costs = {}
         cost = (0,0,10**18)
         for (x,y) in self.map.Frontier:
-          costs[(x,y)]= self.cost(self.bots[i].coord, (x,y),cost[2])
-          if costs[(x,y)]:
-              cost = (x,y,costs[(x,y)])
+          if (x,y) not in Swarm.pastchosen_Frontiers: 
+            costs[(x,y)]= self.cost(self.bots[i].coord, (x,y),cost[2])
+            if costs[(x,y)]:
+                cost = (x,y,costs[(x,y)])
         best_coord = (cost[0],cost[1])
         self.get_logger().info(f"Best frontier chosen at {best_coord} with cost {cost[2]}")
+        Swarm.pastchosen_Frontiers.add(best_coord)
         return best_coord
 
 
 
 def main():
     rclpy.init(args=None)
-    swarm = Swarm()
+    swarm = Swarm(3)
     swarm.see()
     swarm.map.update_frontiers()
-    while len(swarm.map.Frontier)>0:
-        swarm.bots[0].follow_path(swarm.pathplanner.nav(swarm.bots[0].coord,swarm.chooseFrontier(0)))
-        swarm.loadmap()
+
+    # Compute initial paths for each bot
+    paths = []
+    for i in range(swarm.bot_count):
+        path = swarm.pathplanner.nav(swarm.bots[i].coord, swarm.chooseFrontier(i))
+        paths.append(path)
+
+    # Step loop: move each bot one step per iteration
+    while len(swarm.map.Frontier) > 0:
+        all_done = True
+        for i in range(swarm.bot_count):
+            if paths[i]:  # if bot still has steps
+                next_step = paths[i].pop(0)  # take first step
+                swarm.bots[i].move(next_step)
+                all_done = False
+
+        if all_done:
+            # recompute paths once frontiers change
+            for i in range(swarm.bot_count):
+                paths[i] = swarm.pathplanner.nav(swarm.bots[i].coord, swarm.chooseFrontier(i))
 
 if __name__ == '__main__':
     main()
