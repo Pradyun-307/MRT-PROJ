@@ -39,78 +39,96 @@ class bot(Node):
         self.send_map.publish(msg)
 
     def see(self):
-        for x in range(self.x - self.LOS + 1, self.x + self.LOS):
-            for y in range(self.y - self.LOS + 1, self.y + self.LOS):
-                
-                if (x == self.x and y == self.y):
+        cx, cy = self.coord 
+        blocked_set = set()
+
+        x_range = sorted(range(cx - self.LOS + 1, cx + self.LOS), key=lambda k: abs(k - cx))
+        y_range = sorted(range(cy - self.LOS + 1, cy + self.LOS), key=lambda k: abs(k - cy))
+
+        def is_opaque(p):
+            return self.map.grid.get(p) == 1 or p in blocked_set
+
+        for x in x_range:
+            for y in y_range:
+                if (x == cx and y == cy):
                     continue
-    
-                dx = x - self.x
-                dy = y - self.y 
-    
+                dx = x - cx
+                dy = y - cy 
                 is_blocked = False
-                
                 if abs(dx) > 0 and abs(dy) > 0:
                     sign_x = 1 if dx > 0 else -1
                     sign_y = 1 if dy > 0 else -1
-                    
                     point_1 = (x - sign_x, y)
                     point_2 = (x, y - sign_y)
-                    middle_point = (x - sign_x, y - sign_y)
                     
-                    if self.get_map_info.get(point_1) == 1 and self.get_map_info.get(point_2) == 1:
+                    if is_opaque(point_1) and is_opaque(point_2):
                         is_blocked = True
-    
-    
                 else:
                     prev_x = x - (1 if dx > 0 else -1) if dx != 0 else x
                     prev_y = y - (1 if dy > 0 else -1) if dy != 0 else y
                     
-                    if (prev_x, prev_y) != (self.x, self.y) and self.get_map_info.get((prev_x, prev_y)) == 1:
+                    if (prev_x, prev_y) != (cx, cy) and is_opaque((prev_x, prev_y)):
                         is_blocked = True
     
-                if not is_blocked:
-                    self.self.get_map_info.setValue(x, y, self.get_map_info[(x, y)])
-    
-    
-        #now for outer box
-        is_blocked = 0
-        for dx in range(1,self.LOS):
-            if self.get_self.get_map_info_info((self.x + dx, self.y)) == 1:
-                is_blocked = 1
+                if is_blocked:
+                    blocked_set.add((x, y))
+                else:
+                    if (x, y) in self.map.grid:
+                        val = self.get_map_info(x, y)
+                        self.map.grid[(x, y)] = val
+                        self.sendmap(x, y, val)
+
+        is_blocked = False
+        for dx in range(1, self.LOS):
+            if self.map.grid.get((cx + dx, cy)) == 1:
+                is_blocked = True
                 break
         if not is_blocked:
-            self.self.get_map_info.setValue(self.x + self.LOS, self.y, self.get_map_info[(self.x + self.LOS, self.y)])
+            target = (cx + self.LOS, cy)
+            if target in self.map.grid:
+                val = self.get_map_info(target[0], target[1])
+                self.map.grid[target] = val
+                self.sendmap(target[0], target[1], val)
+
+        is_blocked = False
+        for dy in range(1, self.LOS):
+            if self.map.grid.get((cx, cy + dy)) == 1:
+                is_blocked = True
+                break
+        if not is_blocked:
+            target = (cx, cy + self.LOS)
+            if target in self.map.grid:
+                val = self.get_map_info(target[0], target[1])
+                self.map.grid[target] = val
+                self.sendmap(target[0], target[1], val)
+    
+        is_blocked = False
+        for dx in range(1, self.LOS):
+            if self.map.grid.get((cx - dx, cy)) == 1:
+                is_blocked = True
+                break
+        if not is_blocked:
+            target = (cx - self.LOS, cy)
+            if target in self.map.grid:
+                val = self.get_map_info(target[0], target[1])
+                self.map.grid[target] = val
+                self.sendmap(target[0], target[1], val)
         
-    
-        is_blocked = 0
-        for dy in range(1,self.LOS):
-            if self.self.get_map_info.get((self.x , self.y + dy)) == 1:
-                is_blocked = 1
+        is_blocked = False
+        for dy in range(1, self.LOS):
+            if self.map.grid.get((cx, cy - dy)) == 1:
+                is_blocked = True
                 break
         if not is_blocked:
-            self.self.get_map_info.setValue(self.x, self.y + self.LOS, self.get_map_info[(self.x, self.y + self.LOS)])
+            target = (cx, cy - self.LOS)
+            if target in self.map.grid:
+                val = self.get_map_info(target[0], target[1])
+                self.map.grid[target] = val
+                self.sendmap(target[0], target[1], val)
     
-        is_blocked = 0
-        for dx in range(1,self.LOS):
-            if self.self.get_map_info.get((self.x - dx, self.y)) == 1:
-                is_blocked = 1
-                break
-        if not is_blocked:
-            self.self.get_map_info.setValue(self.x - self.LOS, self.y, self.get_map_info[(self.x - self.LOS, self.y)])
-        
-    
-        is_blocked = 0
-        for dy in range(1,self.LOS):
-            if self.self.get_map_info.get((self.x , self.y - dy)) == 1:
-                is_blocked = 1
-                break
-        if not is_blocked:
-            self.self.get_map_info.setValue(self.x ,self.y - self.LOS, self.get_map_info[(self.x, self.y - self.LOS)])
-    
-        self.parent.self.get_map_info.grid[self.coord]= 2
+        self.parent.map.grid[self.coord] = 2
         self.parent.update_data()
-        self.parent.self.get_map_info.update_frontiers()
+        self.parent.map.update_frontiers()
     
     def move(self,coord: tuple):
         if coord == (self.coord[0]+1,self.coord[1]) or (self.coord[0]-1,self.coord[1]) or (self.coord[0],self.coord[1]+1) or (self.coord[0],self.coord[1]-1):
