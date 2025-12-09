@@ -38,7 +38,7 @@ class pathplanning(Node):
             
     def nav(self,start:tuple,end:tuple): ## elementary path finding algorithim for now please keep the input and output types same. 
         if start == end:
-            return []
+            return [start]
         """Returns a list of tuples as a path from the given start to the given end in the given maze"""
         # Create start and end node
         start_node = Point(None, start)
@@ -61,7 +61,7 @@ class pathplanning(Node):
         while len(open_list) > 0:
             iterations += 1
             if iterations > max_iterations:
-                self.get_logger().error("Pathfinding exceeded maximum iterations. Terminating.")
+                self.get_logger().info("Pathfinding exceeded maximum iterations. Terminating.")
                 return []
 
             # Get the current node
@@ -123,6 +123,7 @@ class pathplanning(Node):
                     continue
                 # Add the child to the open list
                 open_list.append(child)
+        return []  # No path found
         
         
     def van(self,coord1:tuple,coord2:tuple,i:int):

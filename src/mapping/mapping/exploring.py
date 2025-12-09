@@ -73,7 +73,7 @@ class Swarm(Node):
             return self.bots[i].coord
         def return_coord(best_coord):
             if best_coord == (-1,-1):
-                return None
+                return self.bots[i].coord
             if best_coord == self.bots[i].coord:
                 return best_coord
             self.pastchosen_Frontiers.add(best_coord)
@@ -115,7 +115,7 @@ class Swarm(Node):
 
 def main():
     rclpy.init(args=None)
-    swarm = Swarm(7)
+    swarm = Swarm(10)
     swarm.see()
     swarm.map.update_frontiers(0)
 
